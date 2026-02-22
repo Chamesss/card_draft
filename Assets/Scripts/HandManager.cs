@@ -29,6 +29,24 @@ public class HandManager : MonoBehaviour
       }
       GameObject g = Instantiate(cardPrefab, spawnPoint.position, spawnPoint.rotation);
       handCards.Add(g);
+      Card card = g.GetComponent<Card>();
+      card.handManager = this;
+      card.SetInHand(true);
+      card.OnDragStarted += () => RemoveCard(g);
+      UpdateCardPositions();
+   }
+
+   private void RemoveCard(GameObject card)
+   {
+      handCards.Remove(card);
+      UpdateCardPositions();
+   }
+
+   public void OnCardDrop(Card card)
+   {
+      card.SetOrigin(null);
+      card.SetInHand(true);
+      handCards.Add(card.gameObject);
       UpdateCardPositions();
    }
 
@@ -48,6 +66,9 @@ public class HandManager : MonoBehaviour
          Vector3 up = spline.EvaluateUpVector(p);
          Quaternion rotation = Quaternion.LookRotation(up, Vector3.Cross(up, forward).normalized);
 
+         handCards[i].transform.DOKill();
+         handCards[i].GetComponent<Card>().ResetSelection();
+         handCards[i].transform.DOScale(1f, 0.25f).SetEase(DG.Tweening.Ease.OutBack);
          handCards[i].transform.DOMove(splinePosition, 0.25f);
          handCards[i].transform.DOLocalRotateQuaternion(rotation, 0.25f);
          handCards[i].GetComponent<SpriteRenderer>().sortingOrder = i;

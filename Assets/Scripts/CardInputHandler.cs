@@ -3,12 +3,11 @@ using UnityEngine.InputSystem;
 
 public class CardInputHandler : MonoBehaviour
 {
-    [SerializeField] private float longPressDuration = 0.5f;
+    [SerializeField] private float longPressDuration = 0.2f;
 
     private Camera _cam;
     private float _pressTime;
     private Card _pressedCard;
-
     void Awake() => _cam = Camera.main;
 
     void Update()
@@ -25,15 +24,25 @@ public class CardInputHandler : MonoBehaviour
             }
         }
 
+        if (Mouse.current.leftButton.isPressed && _pressedCard != null)
+        {
+            float duration = Time.time - _pressTime;
+
+            if (duration >= longPressDuration)
+
+                _pressedCard.LongPress();
+
+
+        }
+
         if (Mouse.current.leftButton.wasReleasedThisFrame && _pressedCard != null)
         {
             float duration = Time.time - _pressTime;
 
             if (duration >= longPressDuration)
-                _pressedCard.LongPress();
+                _pressedCard.Release();
             else
                 _pressedCard.Click();
-
             _pressedCard = null;
         }
     }
