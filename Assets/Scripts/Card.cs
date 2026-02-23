@@ -1,27 +1,61 @@
 ﻿using System.Collections;
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+
+public enum Suit
+{
+    Spades,
+    Hearts,
+    Diamonds,
+    Clubs
+}
 
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(SpriteRenderer))]
 [RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(SortingGroup))]
 public class Card : MonoBehaviour
 {
+
+    [Header("References")]
+    [SerializeField] private GameObject front;               // card_blank sprite
+    [SerializeField] private GameObject back;                // card_blank flipped
+    [SerializeField] private SpriteRenderer suitRenderer;   // front > CenterSuit
+    [SerializeField] private TextMeshPro rankRenderer;      // front > Rank
+    [SerializeField] private SpriteRenderer backBackground; // back > background
+
+    // Cached from children — set automatically in Awake
+    private SpriteRenderer _frontRenderer;
+    private SpriteRenderer _backRenderer;
+    private SortingGroup _sortingGroup;
+
+    [Header("Suit Sprites")]
+    [SerializeField] private Sprite spadeSprite;
+    [SerializeField] private Sprite heartSprite;
+    [SerializeField] private Sprite diamondSprite;
+    [SerializeField] private Sprite clubSprite;
+
+
     [SerializeField] private float riseHeight = 1f;
     [SerializeField] private float animDuration = 0.1f;
     [SerializeField] private float dragScale = 0.8f;
     [SerializeField] private float scaleDuration = 0.15f;
+    [SerializeField] private float flipDuration = 0.3f;
 
     public System.Action OnDragStarted;
     public HandManager handManager;
 
     private bool _isSelected = false;
     private bool _isInHand = false;
+    private bool _isFaceUp = true;
     private ICardDropArea _originArea;
     private Coroutine _anim;
     private Collider2D _collider;
     private SpriteRenderer _sr;
+    private Camera _cam;
     private Vector3 _originalPosition;
     private int _savedSortingOrder;
 
@@ -32,6 +66,117 @@ public class Card : MonoBehaviour
     {
         _sr = GetComponent<SpriteRenderer>();
         _collider = GetComponent<Collider2D>();
+        _sortingGroup = GetComponent<SortingGroup>();
+        _cam = Camera.main;
+        if (front != null) _frontRenderer = front.GetComponent<SpriteRenderer>();
+        if (back != null) _backRenderer = back.GetComponent<SpriteRenderer>();
+
+        // Fixed relative orders within the card — set once, never touched again.
+        // SortingGroup makes these relative to the group, not the global layer.
+        _sr.sortingOrder = 0;
+        if (_backRenderer != null) _backRenderer.sortingOrder = 1;
+        if (_frontRenderer != null) _frontRenderer.sortingOrder = 1;
+        if (backBackground != null) backBackground.sortingOrder = 2;
+        if (suitRenderer != null) suitRenderer.sortingOrder = 3;
+        if (rankRenderer != null) rankRenderer.sortingOrder = 3;
+
+        // Initialize face visibility immediately so prefab defaults don't bleed through
+        float dot = Vector3.Dot(transform.forward, _cam.transform.forward);
+        _isFaceUp = dot >= 0f;
+        SetFaceVisibility(_isFaceUp);
+    }
+
+    private void Update()
+    {
+        // Use a threshold away from 0 to prevent flickering at exactly 90 degrees.
+        // SetActive is only called when the state actually changes.
+        float dot = Vector3.Dot(transform.forward, _cam.transform.forward);
+        if (dot > 0.05f && !_isFaceUp)
+        {
+            _isFaceUp = true;
+            SetFaceVisibility(true);
+        }
+        else if (dot < -0.05f && _isFaceUp)
+        {
+            _isFaceUp = false;
+            SetFaceVisibility(false);
+        }
+    }
+
+    public void Setup(Suit suit, int rank)
+    {
+        SetSuit(suit);
+        SetRank(rank);
+        // Update() will auto-set visibility based on rotation
+    }
+
+    void SetSuit(Suit suit)
+    {
+        if (suitRenderer == null)
+        {
+            Debug.LogWarning("suitRenderer is not assigned on the Card prefab!", this);
+            return;
+        }
+
+        switch (suit)
+        {
+            case Suit.Spades:
+                GetScaledSuitSprite(spadeSprite);
+                break;
+            case Suit.Hearts:
+                GetScaledSuitSprite(heartSprite);
+                break;
+            case Suit.Diamonds:
+                GetScaledSuitSprite(diamondSprite);
+                break;
+            case Suit.Clubs:
+                GetScaledSuitSprite(clubSprite);
+                break;
+        }
+    }
+
+    void SetRank(int rank)
+    {
+        if (rankRenderer == null)
+        {
+            Debug.LogWarning("rankRenderer is not assigned on the Card prefab!", this);
+            return;
+        }
+
+        string rankString = rank switch
+        {
+            1 => "A",
+            11 => "J",
+            12 => "Q",
+            13 => "K",
+            _ => rank.ToString(),
+        };
+        rankRenderer.text = rankString;
+    }
+
+    void GetScaledSuitSprite(Sprite sprite, float scale = 0.5f)
+    {
+        if (sprite == null) return;
+        suitRenderer.sprite = sprite;
+        suitRenderer.transform.localScale = new Vector3(scale, scale, 1f);
+    }
+
+    // Flip the card by animating a local Y-axis rotation.
+    // Update() will detect the facing direction and swap front/back automatically.
+    public void Flip(bool showFront)
+    {
+        if (_isFaceUp == showFront) return;
+        _isFaceUp = showFront;
+        float targetY = showFront ? 0f : 180f;
+        Vector3 current = transform.localEulerAngles;
+        transform.DOLocalRotate(new Vector3(current.x, targetY, current.z), flipDuration)
+            .SetEase(Ease.InOutQuad);
+    }
+
+    private void SetFaceVisibility(bool showFront)
+    {
+        if (front != null) front.SetActive(showFront);
+        if (back != null) back.SetActive(!showFront);
     }
 
     public void Click()
@@ -51,12 +196,11 @@ public class Card : MonoBehaviour
     public void LongPress()
     {
         _isInHand = false;
-        _savedSortingOrder = _sr.sortingOrder;
-        _sr.sortingOrder = DragSortingOrder;
+        _savedSortingOrder = _sortingGroup.sortingOrder;
+        SetSortingOrder(DragSortingOrder);
         transform.DOKill();
         transform.DOScale(dragScale, scaleDuration).SetEase(Ease.OutQuad);
         OnDragStarted?.Invoke();
-        transform.SetPositionAndRotation(GetMouseWorldPosition(), Quaternion.identity);
     }
 
     public void Release()
@@ -93,9 +237,11 @@ public class Card : MonoBehaviour
         _originArea = origin;
     }
 
+    // Only the SortingGroup order changes — children always keep their fixed relative values.
+    // Base offset of 10 ensures cards always render above background sprites (order 0).
     public void SetSortingOrder(int order)
     {
-        _sr.sortingOrder = order;
+        _sortingGroup.sortingOrder = 10 + order;
     }
 
     public void SetInHand(bool inHand)
@@ -129,15 +275,4 @@ public class Card : MonoBehaviour
         transform.position = target;
         _anim = null;
     }
-
-    private Vector3 GetMouseWorldPosition()
-    {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-        mousePos.z = transform.position.z; // keep Z unchanged
-        return mousePos;
-    }
-}
-
-internal class CardDropArea
-{
 }

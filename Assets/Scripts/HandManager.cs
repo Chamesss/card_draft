@@ -30,6 +30,8 @@ public class HandManager : MonoBehaviour
       GameObject g = Instantiate(cardPrefab, spawnPoint.position, spawnPoint.rotation);
       handCards.Add(g);
       Card card = g.GetComponent<Card>();
+      Suit randomSuit = (Suit)Random.Range(0, System.Enum.GetValues(typeof(Suit)).Length);
+      card.Setup(randomSuit, Random.Range(1, 14));
       card.handManager = this;
       card.SetInHand(true);
       card.OnDragStarted += () => RemoveCard(g);
@@ -71,7 +73,7 @@ public class HandManager : MonoBehaviour
          handCards[i].transform.DOScale(1f, 0.25f).SetEase(DG.Tweening.Ease.OutBack);
          handCards[i].transform.DOMove(splinePosition, 0.25f);
          handCards[i].transform.DOLocalRotateQuaternion(rotation, 0.25f);
-         handCards[i].GetComponent<SpriteRenderer>().sortingOrder = i;
+         handCards[i].GetComponent<Card>().SetSortingOrder(i);
       }
    }
 }
