@@ -103,6 +103,11 @@ public class Card : MonoBehaviour
         }
     }
 
+    public void SetInteractable(bool interactable)
+    {
+        _collider.enabled = interactable;
+    }
+
     public void Setup(Suit suit, int rank)
     {
         SetSuit(suit);

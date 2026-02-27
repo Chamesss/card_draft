@@ -13,12 +13,7 @@ public class HandManager : MonoBehaviour
 
    private readonly List<GameObject> handCards = new();
 
-   private void Update()
-   {
-      if (Keyboard.current.spaceKey.wasPressedThisFrame) DrawCard();
-   }
-
-   private void DrawCard()
+   public void DrawCard()
    {
       if (handCards.Count >= maxHandSize)
       {

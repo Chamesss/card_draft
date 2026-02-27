@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 241789117009389775}
   - component: {fileID: 3332070616395142172}
   - component: {fileID: 4555686659047629783}
+  - component: {fileID: 3882578601912173268}
   m_Layer: 0
   m_Name: Card
   m_TagString: Untagged
@@ -166,7 +167,21 @@ MonoBehaviour:
   animDuration: 0.1
   dragScale: 0.8
   scaleDuration: 0.15
+  flipDuration: 0.3
   handManager: {fileID: 0}
+--- !u!210 &3882578601912173268
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1734758513873694043}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &2470373330231830501
 GameObject:
   m_ObjectHideFlags: 0
@@ -464,14 +479,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8382973393540727915}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.1564345, z: 0, w: 0.98768836}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6488401439905881570}
   m_Father: {fileID: 7815651145024546547}
-  m_LocalEulerAnglesHint: {x: 0, y: 18, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &6564119187584100893
 SpriteRenderer:
   serializedVersion: 2
