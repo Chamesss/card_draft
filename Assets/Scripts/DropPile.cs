@@ -11,6 +11,7 @@ public class DropPile : MonoBehaviour, ICardDropArea
     public void OnCardDrop(Card card)
     {
         card.SetOrigin(this);
+        card.SetSortingLayer(LayerBase.Pile);
         card.SetSortingOrder(_pileCount);
 
         float offset = Mathf.Abs(stackOffset) * _pileCount;

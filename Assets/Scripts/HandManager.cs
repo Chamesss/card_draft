@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Splines;
 using UnityEngine.InputSystem;
 
-public class HandManager : MonoBehaviour
+public class HandManager : HandManagerBase
 {
    [SerializeField] private int maxHandSize;
    [SerializeField] private GameObject cardPrefab;
@@ -13,7 +13,7 @@ public class HandManager : MonoBehaviour
 
    private readonly List<GameObject> handCards = new();
 
-   public void DrawCard()
+   public override void DrawCard(Card deckCard)
    {
       if (handCards.Count >= maxHandSize)
       {
@@ -22,11 +22,11 @@ public class HandManager : MonoBehaviour
          Debug.Log(handCards);
          return;
       }
+
       GameObject g = Instantiate(cardPrefab, spawnPoint.position, spawnPoint.rotation);
       handCards.Add(g);
       Card card = g.GetComponent<Card>();
-      Suit randomSuit = (Suit)Random.Range(0, System.Enum.GetValues(typeof(Suit)).Length);
-      card.Setup(randomSuit, Random.Range(1, 14));
+      card.Setup(deckCard.CardSuit, deckCard.CardRank);
       card.handManager = this;
       card.SetInHand(true);
       card.OnDragStarted += () => RemoveCard(g);
@@ -68,7 +68,9 @@ public class HandManager : MonoBehaviour
          handCards[i].transform.DOScale(1f, 0.25f).SetEase(DG.Tweening.Ease.OutBack);
          handCards[i].transform.DOMove(splinePosition, 0.25f);
          handCards[i].transform.DOLocalRotateQuaternion(rotation, 0.25f);
-         handCards[i].GetComponent<Card>().SetSortingOrder(i);
+         Card c = handCards[i].GetComponent<Card>();
+         c.SetSortingLayer(LayerBase.Hand);
+         c.SetSortingOrder(i);
       }
    }
 }

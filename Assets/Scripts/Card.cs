@@ -2,7 +2,6 @@
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
 public enum Suit
@@ -57,9 +56,9 @@ public class Card : MonoBehaviour
     private SpriteRenderer _sr;
     private Camera _cam;
     private Vector3 _originalPosition;
-    private int _savedSortingOrder;
-
-    private const int DragSortingOrder = 9999;
+    public Suit CardSuit;
+    public int CardRank;
+    private string _savedSortingLayer;
 
 
     private void Awake()
@@ -110,6 +109,8 @@ public class Card : MonoBehaviour
 
     public void Setup(Suit suit, int rank)
     {
+        CardSuit = suit;
+        CardRank = rank;
         SetSuit(suit);
         SetRank(rank);
         // Update() will auto-set visibility based on rotation
@@ -201,8 +202,9 @@ public class Card : MonoBehaviour
     public void LongPress()
     {
         _isInHand = false;
-        _savedSortingOrder = _sortingGroup.sortingOrder;
-        SetSortingOrder(DragSortingOrder);
+        _savedSortingLayer = _sortingGroup.sortingLayerName;
+        SetSortingLayer(LayerBase.Drag);
+        SetSortingOrder(0);
         transform.DOKill();
         transform.DOScale(dragScale, scaleDuration).SetEase(Ease.OutQuad);
         OnDragStarted?.Invoke();
@@ -242,11 +244,15 @@ public class Card : MonoBehaviour
         _originArea = origin;
     }
 
-    // Only the SortingGroup order changes — children always keep their fixed relative values.
-    // Base offset of 10 ensures cards always render above background sprites (order 0).
+    public void SetSortingLayer(LayerBase layerName)
+    {
+        _sortingGroup.sortingLayerName = layerName.ToString();
+    }
+
+    // Sets the order within the current sorting layer.
     public void SetSortingOrder(int order)
     {
-        _sortingGroup.sortingOrder = 10 + order;
+        _sortingGroup.sortingOrder = order;
     }
 
     public void SetInHand(bool inHand)

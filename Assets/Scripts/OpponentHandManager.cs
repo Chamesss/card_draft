@@ -20,7 +20,7 @@ public enum PlayerSeat
 /// transform is pre-rotated 180° on Y (or as appropriate for the seat).
 /// Draw and drop animations take the card's world-space orientation into account.
 /// </summary>
-public class OpponentHandManager : MonoBehaviour
+public class OpponentHandManager : HandManagerBase
 {
     [Header("Seat")]
     [Tooltip("Which opponent seat this manager represents.")]
@@ -42,13 +42,29 @@ public class OpponentHandManager : MonoBehaviour
     [Tooltip("Final resting scale for opponent cards. Use a value < 1 to make them smaller than the player's cards.")]
     [SerializeField] private float cardScale = 0.5f;
     [SerializeField] private float cardZOffset = 0f;
+    [SerializeField] private GameObject dropArea;
 
     private readonly List<GameObject> _handCards = new();
+
+    private void Update()
+    {
+        if (UnityEngine.InputSystem.Keyboard.current.fKey.wasPressedThisFrame && seat == PlayerSeat.CenterRight)
+        {
+            GameObject card = _handCards[_handCards.ToArray().Length - 1];
+            if (card)
+            {
+                DropCard(card);
+                Debug.Log("card dropped");
+                return;
+            }
+            Debug.Log("No card found");
+        }
+    }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
     /// <summary>Draw one card into this opponent's hand.</summary>
-    public void DrawCard()
+    public override void DrawCard(Card deckCard)
     {
         if (_handCards.Count >= maxHandSize) return;
 
@@ -61,8 +77,7 @@ public class OpponentHandManager : MonoBehaviour
         Card card = g.GetComponent<Card>();
 
         // Assign random data (or pass in specific data for a real game)
-        Suit randomSuit = (Suit)Random.Range(0, System.Enum.GetValues(typeof(Suit)).Length);
-        card.Setup(randomSuit, Random.Range(1, 14));
+        card.Setup(deckCard.CardSuit, deckCard.CardRank);
 
         // Disable interactivity — opponent cards can't be clicked or dragged by the local player
         card.SetInteractable(false);
@@ -74,6 +89,9 @@ public class OpponentHandManager : MonoBehaviour
     public void DropCard(GameObject card)
     {
         if (!_handCards.Contains(card)) return;
+        Card CardObject = card.GetComponent<Card>();
+        ICardDropArea DropAreaObject = dropArea.GetComponent<ICardDropArea>();
+        DropAreaObject.OnCardDrop(CardObject);
         _handCards.Remove(card);
         RefreshHandLayout(animateLast: false);
     }
@@ -156,7 +174,9 @@ public class OpponentHandManager : MonoBehaviour
                 go.transform.DOScale(cardScale, dropDuration).SetEase(Ease.OutCubic);
             }
 
-            go.GetComponent<Card>().SetSortingOrder(i);
+            Card c = go.GetComponent<Card>();
+            c.SetSortingLayer(LayerBase.Hand);
+            c.SetSortingOrder(i);
         }
     }
 
@@ -169,16 +189,7 @@ public class OpponentHandManager : MonoBehaviour
     {
         PlayerSeat.CenterRight => Quaternion.Euler(0f, 0f, -90f),  // rotated 90° CW
         PlayerSeat.CenterLeft => Quaternion.Euler(0f, 0f, 90f),  // rotated 90° CCW
-        PlayerSeat.TopCenter => Quaternion.Euler(0f, 0f, 180f),  // upside-down
+        PlayerSeat.TopCenter => Quaternion.Euler(0f, 0f, -90f),  // upside-down
         _ => Quaternion.identity
     };
-
-#if UNITY_EDITOR
-    // Quick test hook — press D in play mode to deal one card per opponent
-    private void Update()
-    {
-        if (UnityEngine.InputSystem.Keyboard.current.dKey.wasPressedThisFrame)
-            DrawCard();
-    }
-#endif
 }
